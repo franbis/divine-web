@@ -3,7 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- **UI**: Rename "Verified" badge to "Human Made" with checkmark icon for ProofMode verified content
+  - Updated ProofModeBadge to use custom no-AI/human-made icon
+  - Updated VerifiedOnlyToggle label from "Verified" to "Human Made"
 - **UI**: Move VineBadge ("V Archived") to upper right corner of video cards, consistent with ProofModeBadge positioning
+- **BUGFIX**: Fix Classic Vines tab showing random new videos instead of archived Vines
+  - Root cause: Relay doesn't support combining `#platform` tag filter with NIP-50 `search` parameter
+  - Removed NIP-50 search from Classic/top queries; Vines now fetched by platform tag and sorted client-side by loop count
+- **UI**: VideoCard layout improvements
+  - Added `layout` prop for horizontal (Vine-style) vs vertical layouts
+  - Video page now uses vertical layout with narrower click zones for better button accessibility
+  - Reduced font sizes for better information density
 - **BUGFIX**: Fix hashtag pages not loading content (e.g., `/hashtag/lol`)
   - Root cause: Relay doesn't support combining `#t` tag filter with NIP-50 `search` parameter
   - Removed NIP-50 search from hashtag queries; sorting now applied client-side for hashtag feeds

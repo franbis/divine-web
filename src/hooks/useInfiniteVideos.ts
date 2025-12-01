@@ -92,8 +92,7 @@ export function useInfiniteVideos({
         filter.until = cursor;
       }
 
-      // Filter for Classic (archived Vines) - ONLY for trending feed with top sort
-      // Do NOT apply to discovery feed, which should show all content
+      // Filter for Classic (archived Vines) - trending feed with top sort
       if (effectiveSortMode === 'top' && feedType === 'trending') {
         filter['#platform'] = ['vine'];
         debugLog('[useInfiniteVideos] 🎬 Classic mode: filtering for archived Vines only');
