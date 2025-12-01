@@ -354,17 +354,23 @@ export function VideoCard({
                 <Link to={profileUrl} className="font-semibold hover:underline truncate">
                   {displayName}
                 </Link>
+                {timeAgo && (
+                  <span className="text-sm text-muted-foreground block" title={new Date(timestamp * 1000).toLocaleString()}>
+                    {timeAgo}
+                  </span>
+                )}
               </div>
-              {(isMigratedVine || timeAgo) && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-                  {isMigratedVine && <VineBadge />}
-                  {timeAgo && (
-                    <span title={new Date(timestamp * 1000).toLocaleString()}>
-                      {timeAgo}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Badges - right aligned */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isMigratedVine && <VineBadge />}
+                {video.proofMode && video.proofMode.level !== 'unverified' && (
+                  <ProofModeBadge
+                    level={video.proofMode.level}
+                    proofData={video.proofMode}
+                    showDetails={true}
+                  />
+                )}
+              </div>
             </div>
           )}
 
@@ -465,20 +471,18 @@ export function VideoCard({
                     {timeAgo}
                   </span>
                 )}
-                {isMigratedVine && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <VineBadge />
-                  </div>
+              </div>
+              {/* Badges - right aligned */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isMigratedVine && <VineBadge />}
+                {video.proofMode && video.proofMode.level !== 'unverified' && (
+                  <ProofModeBadge
+                    level={video.proofMode.level}
+                    proofData={video.proofMode}
+                    showDetails={true}
+                  />
                 )}
               </div>
-              {/* Human Made badge - right aligned */}
-              {video.proofMode && video.proofMode.level !== 'unverified' && (
-                <ProofModeBadge
-                  level={video.proofMode.level}
-                  proofData={video.proofMode}
-                  showDetails={true}
-                />
-              )}
             </div>
           )}
 

@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- **UI**: Move VineBadge ("V Archived") to upper right corner of video cards, consistent with ProofModeBadge positioning
 - **BUGFIX**: Fix hashtag pages not loading content (e.g., `/hashtag/lol`)
   - Root cause: Relay doesn't support combining `#t` tag filter with NIP-50 `search` parameter
   - Removed NIP-50 search from hashtag queries; sorting now applied client-side for hashtag feeds
