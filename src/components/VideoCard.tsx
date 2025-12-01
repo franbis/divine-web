@@ -13,6 +13,7 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { VideoCommentsModal } from '@/components/VideoCommentsModal';
 import { ThumbnailPlayer } from '@/components/ThumbnailPlayer';
 import { NoteContent } from '@/components/NoteContent';
+import { ProofModeBadge } from '@/components/ProofModeBadge';
 import { VineBadge } from '@/components/VineBadge';
 import { AddToListDialog } from '@/components/AddToListDialog';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
@@ -408,11 +409,10 @@ export function VideoCard({
               {/* Human Made badge overlay - upper right corner */}
               {video.proofMode && video.proofMode.level !== 'unverified' && (
                 <div className="absolute top-3 right-3 z-30">
-                  <img
-                    src="/ui-icons/human-made.svg"
-                    alt="Human Made"
-                    className="w-8 h-8 drop-shadow-lg"
-                    title="Human Made - verified with ProofMode"
+                  <ProofModeBadge
+                    level={video.proofMode.level}
+                    proofData={video.proofMode}
+                    showDetails={true}
                   />
                 </div>
               )}
