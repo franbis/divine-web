@@ -13,7 +13,6 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { VideoCommentsModal } from '@/components/VideoCommentsModal';
 import { ThumbnailPlayer } from '@/components/ThumbnailPlayer';
 import { NoteContent } from '@/components/NoteContent';
-import { VideoListBadges } from '@/components/VideoListBadges';
 import { ProofModeBadge } from '@/components/ProofModeBadge';
 import { VineBadge } from '@/components/VineBadge';
 import { AddToListDialog } from '@/components/AddToListDialog';
@@ -533,15 +532,6 @@ export function VideoCard({
               </div>
             )}
 
-            {/* List badges */}
-            {video.vineId && (
-              <VideoListBadges
-                videoId={video.vineId}
-                videoPubkey={video.pubkey}
-                compact={true}
-                showAddButton={false}
-              />
-            )}
           </div>
 
           {/* Stats row - horizontal layout: show loop count only (likes/comments shown on buttons) */}
