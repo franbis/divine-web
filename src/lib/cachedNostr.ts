@@ -53,26 +53,26 @@ export function createCachedNostr<T extends NostrClient>(
       }
     }
 
-    // 2. Try gateway if targeting divine.video
+    // 2. Try gateway for ALL divine.video queries (not just cacheable)
     if (useGateway) {
       try {
         debugLog('[CachedNostr] Trying gateway for divine.video query');
-        // Query each filter separately and combine results
         const gatewayResults: NostrEvent[] = [];
         for (const filter of filters) {
           const events = await queryGateway(filter, opts?.signal);
           gatewayResults.push(...events);
         }
 
-        if (gatewayResults.length > 0) {
-          debugLog(`[CachedNostr] Gateway returned ${gatewayResults.length} events`);
-          // Cache the results
-          if (isCacheable) {
-            await cacheResults(gatewayResults);
-          }
-          return gatewayResults;
+        // Gateway can return empty for valid queries (e.g., no matching events)
+        // Only fall back to WebSocket if gateway throws an error
+        debugLog(`[CachedNostr] Gateway returned ${gatewayResults.length} events`);
+
+        // Cache profile/contact results
+        if (isCacheable && gatewayResults.length > 0) {
+          await cacheResults(gatewayResults);
         }
-        debugLog('[CachedNostr] Gateway returned empty, falling back to WebSocket');
+
+        return gatewayResults;
       } catch (err) {
         debugLog('[CachedNostr] Gateway failed, falling back to WebSocket:', err);
       }
