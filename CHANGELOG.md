@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- **UI**: Change default VideoCard layout to vertical (text below video) on all screen sizes
 - **UI**: Rename "Verified" badge to "Human Made" with checkmark icon for ProofMode verified content
   - Updated ProofModeBadge to use custom no-AI/human-made icon
   - Updated VerifiedOnlyToggle label from "Verified" to "Human Made"

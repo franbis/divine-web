@@ -103,8 +103,8 @@ export function VideoCard({
   const [showReactionsModal, setShowReactionsModal] = useState<'likes' | 'reposts' | null>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
   const isMobile = useIsMobile();
-  // Determine layout: use prop if provided, otherwise horizontal on desktop, vertical on mobile
-  const effectiveLayout = layout ?? (isMobile ? 'vertical' : 'horizontal');
+  // Determine layout: use prop if provided, otherwise always vertical (text below video)
+  const effectiveLayout = layout ?? 'vertical';
   const isHorizontal = effectiveLayout === 'horizontal';
   const { toast } = useToast();
   const muteUser = useMuteItem();
