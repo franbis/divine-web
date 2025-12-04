@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils';
 import { useInView } from 'react-intersection-observer';
 import { useVideoPlayback } from '@/hooks/useVideoPlayback';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAdultVerification, checkMediaAuth } from '@/hooks/useAdultVerification';
 import { debugError, verboseLog } from '@/lib/debug';
 import { BlurhashPlaceholder, isValidBlurhash } from '@/components/BlurhashImage';
+import { AgeVerificationOverlay } from '@/components/AgeVerificationOverlay';
 import Hls from 'hls.js';
 
 interface VideoPlayerProps {
@@ -82,9 +84,14 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
     const [isLoading, setIsLoading] = useState(true);
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [requiresAuth, setRequiresAuth] = useState(false);
+    const [authRetryCount, setAuthRetryCount] = useState(0);
     const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
     const [allUrls, setAllUrls] = useState<string[]>([]);
     const isChangingMuteState = useRef(false);
+
+    // Adult verification hook
+    const { isVerified: isAdultVerified, getAuthHeader } = useAdultVerification();
 
     // Mobile-specific state
     const [touchState, setTouchState] = useState<TouchState | null>(null);
@@ -474,6 +481,18 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
       }
     };
 
+    // Handle age verification completion - retry video load
+    const handleAgeVerified = useCallback(() => {
+      verboseLog(`[VideoPlayer ${videoId}] Age verified, retrying video load`);
+      setRequiresAuth(false);
+      setIsLoading(true);
+      setHasError(false);
+      setAuthRetryCount(prev => prev + 1);
+
+      // Force re-load by resetting the URL index
+      setCurrentUrlIndex(0);
+    }, [videoId]);
+
     // Handle play/pause state changes
     const handlePlay = () => {
       verboseLog(`[VideoPlayer ${videoId}] Play event fired, isActive: ${isActive}`);
@@ -546,12 +565,49 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
         return;
       }
 
+      // Skip if already showing auth required (prevent loops)
+      if (requiresAuth) {
+        verboseLog(`[VideoPlayer ${videoId}] Skipping source setup - auth required`);
+        return;
+      }
+
       // Cleanup previous HLS instance
       if (hlsRef.current) {
         verboseLog(`[VideoPlayer ${videoId}] Destroying previous HLS instance`);
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+
+      // Preflight auth check for HLS URL
+      const checkAuth = async () => {
+        const urlToCheck = hlsUrl || allUrls[currentUrlIndex];
+        if (urlToCheck && !isAdultVerified) {
+          const { authorized, status } = await checkMediaAuth(urlToCheck);
+          if (!authorized && (status === 401 || status === 403)) {
+            verboseLog(`[VideoPlayer ${videoId}] Preflight check: auth required (${status})`);
+            setRequiresAuth(true);
+            setIsLoading(false);
+            return false;
+          }
+        }
+        return true;
+      };
+
+      // Run preflight check then load video
+      checkAuth().then((authorized) => {
+        if (!authorized) return;
+        loadVideoSource();
+      });
+
+      async function loadVideoSource() {
+        // Get auth header if adult verified
+        let authHeader: string | null = null;
+        if (isAdultVerified && hlsUrl) {
+          authHeader = await getAuthHeader(hlsUrl);
+          if (authHeader) {
+            verboseLog(`[VideoPlayer ${videoId}] Using NIP-98 auth for media request`);
+          }
+        }
 
       // Priority: HLS URL > fallback URLs > primary src
       // Try HLS first for adaptive bitrate streaming on slower connections
@@ -567,6 +623,10 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
           // Start with lower quality for faster initial load
           startLevel: -1, // Auto-select starting quality
           capLevelToPlayerSize: true, // Match quality to player size
+          // Add auth header if adult verified
+          xhrSetup: authHeader ? (xhr) => {
+            xhr.setRequestHeader('Authorization', authHeader);
+          } : undefined,
         });
 
         hls.loadSource(hlsUrl);
@@ -579,6 +639,16 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
 
         hls.on(Hls.Events.ERROR, (event, data) => {
           debugError(`[VideoPlayer ${videoId}] HLS error:`, data);
+
+          // Check for 401/403 auth errors
+          if (data.response && (data.response.code === 401 || data.response.code === 403)) {
+            debugError(`[VideoPlayer ${videoId}] Auth required (${data.response.code})`);
+            setRequiresAuth(true);
+            setIsLoading(false);
+            hls.destroy();
+            return;
+          }
+
           if (data.fatal) {
             debugError(`[VideoPlayer ${videoId}] Fatal HLS error, falling back to direct playback`);
             hls.destroy();
@@ -612,6 +682,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
           setHasError(false);
         }
       }
+      } // end loadVideoSource
 
       // Cleanup on unmount
       return () => {
@@ -622,7 +693,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
         }
       };
 
-    }, [hlsUrl, currentUrlIndex, allUrls, videoId]); // React to HLS URL and fallback changes
+    }, [hlsUrl, currentUrlIndex, allUrls, videoId, requiresAuth, isAdultVerified, authRetryCount, getAuthHeader]); // React to HLS URL, fallback, and auth changes
 
     // Cleanup on unmount
     useEffect(() => {
@@ -737,7 +808,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
         )}
 
         {/* Error state */}
-        {hasError && (
+        {hasError && !requiresAuth && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <div>Failed to load video</div>
@@ -746,6 +817,15 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
               )}
             </div>
           </div>
+        )}
+
+        {/* Age verification required (401/403) */}
+        {requiresAuth && (
+          <AgeVerificationOverlay
+            onVerified={handleAgeVerified}
+            thumbnailUrl={poster}
+            blurhash={blurhash}
+          />
         )}
       </div>
     );
