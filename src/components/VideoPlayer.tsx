@@ -10,6 +10,7 @@ import { useAdultVerification, checkMediaAuth } from '@/hooks/useAdultVerificati
 import { debugError, verboseLog } from '@/lib/debug';
 import { BlurhashPlaceholder, isValidBlurhash } from '@/components/BlurhashImage';
 import { AgeVerificationOverlay } from '@/components/AgeVerificationOverlay';
+import { createAuthLoader } from '@/lib/hlsAuthLoader';
 import Hls from 'hls.js';
 
 interface VideoPlayerProps {
@@ -599,17 +600,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
         loadVideoSource();
       });
 
-      async function loadVideoSource() {
-        // Get auth header if adult verified
-        let authHeader: string | null = null;
-        if (isAdultVerified && hlsUrl) {
-          authHeader = await getAuthHeader(hlsUrl);
-          if (authHeader) {
-            verboseLog(`[VideoPlayer ${videoId}] Using NIP-98 auth for media request`);
-          } else {
-            verboseLog(`[VideoPlayer ${videoId}] Adult verified but no auth header generated (no signer?)`);
-          }
-        }
+      function loadVideoSource() {
         verboseLog(`[VideoPlayer ${videoId}] loadVideoSource called - isAdultVerified: ${isAdultVerified}, authRetryCount: ${authRetryCount}`);
 
       // Priority: HLS URL > fallback URLs > primary src
@@ -617,7 +608,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
       if (hlsUrl && Hls.isSupported()) {
         verboseLog(`[VideoPlayer ${videoId}] Using HLS.js for adaptive streaming: ${hlsUrl}`);
 
-        const hls = new Hls({
+        // Use custom auth loader if adult verified - generates fresh NIP-98 signature for each request
+        const hlsConfig: Partial<Hls['config']> = {
           enableWorker: true,
           lowLatencyMode: false,
           backBufferLength: 90,
@@ -626,11 +618,15 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
           // Start with lower quality for faster initial load
           startLevel: -1, // Auto-select starting quality
           capLevelToPlayerSize: true, // Match quality to player size
-          // Add auth header if adult verified
-          xhrSetup: authHeader ? (xhr) => {
-            xhr.setRequestHeader('Authorization', authHeader);
-          } : undefined,
-        });
+        };
+
+        // Add custom auth loader if adult verified
+        if (isAdultVerified) {
+          verboseLog(`[VideoPlayer ${videoId}] Using NIP-98 auth loader for each HLS request`);
+          hlsConfig.loader = createAuthLoader(getAuthHeader);
+        }
+
+        const hls = new Hls(hlsConfig);
 
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
