@@ -22,9 +22,9 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import type { ParsedVideoData } from '@/types/video';
 import { debugLog, debugWarn } from '@/lib/debug';
 import type { SortMode } from '@/types/nostr';
-import { useVideoPlayback } from '@/hooks/useVideoPlayback';
 import { useNavigate } from 'react-router-dom';
 import { useVideoPlayback } from '@/hooks/useVideoPlayback';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 
 type ViewMode = 'feed' | 'grid';
 
@@ -75,6 +75,7 @@ export function VideoFeed({
   const { toggleRepost } = useOptimisticRepost();
   const { checkContent } = useContentModeration();
   const { openLoginDialog } = useLoginDialog();
+  const {autoScroll, setAutoScroll} = useAutoScroll();
   const navigate = useNavigate();
 
   const { activeVideoId, registerVideo, unregisterVideo, updateVideoVisibility, globalMuted, setGlobalMuted } = useVideoPlayback();
@@ -208,19 +209,21 @@ export function VideoFeed({
   
   // Register the auto-scroll timeout.
   useEffect(() => {
-    if (autoScrollTimeout !== undefined) {
-      const newActiveVideoIndex = filteredVideos.findIndex(v => v.id === activeVideoId);
-      if (newActiveVideoIndex !== activeVideoIndexRef.current) {
-        autoScrollTimeoutIdRef.current = window.setTimeout(() => scrollToVideoCard(newActiveVideoIndex), autoScrollTimeout);
+    if (autoScroll) {
+      if (autoScrollTimeout !== undefined) {
+        const newActiveVideoIndex = filteredVideos.findIndex(v => v.id === activeVideoId);
+        if (newActiveVideoIndex !== activeVideoIndexRef.current) {
+          autoScrollTimeoutIdRef.current = window.setTimeout(() => scrollToVideoCard(newActiveVideoIndex), autoScrollTimeout);
 
-        activeVideoIndexRef.current = newActiveVideoIndex;
+          activeVideoIndexRef.current = newActiveVideoIndex;
+        }
       }
     }
 
     return () => {
       if (autoScrollTimeoutIdRef.current) window.clearTimeout(autoScrollTimeoutIdRef.current);
     }
-  }, [activeVideoId]);
+  }, [autoScroll, activeVideoId]);
 
   
   const scrollToVideoCard = (index: number) => {
