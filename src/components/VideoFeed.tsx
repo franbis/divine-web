@@ -75,7 +75,7 @@ export function VideoFeed({
   const { toggleRepost } = useOptimisticRepost();
   const { checkContent } = useContentModeration();
   const { openLoginDialog } = useLoginDialog();
-  const {autoScroll, setAutoScroll} = useAutoScroll();
+  const { autoScroll } = useAutoScroll();
   const navigate = useNavigate();
 
   const { activeVideoId, registerVideo, unregisterVideo, updateVideoVisibility, globalMuted, setGlobalMuted } = useVideoPlayback();
@@ -130,6 +130,22 @@ export function VideoFeed({
       return true;
     });
   }, [allVideos, checkContent, verifiedOnly]);
+
+  const scrollToVideoCard = (index: number) => {
+    if (videoCardsListRef.current) {
+      const card = videoCardsListRef.current.children[index] as HTMLDivElement;
+      let scrollPosition: number | undefined;
+      if (autoScrollAlignment === 'center')
+        scrollPosition = (card.offsetTop - (window.innerHeight / 2)) + (card.offsetHeight / 2);
+      else if (autoScrollAlignment === 'bottom')
+        scrollPosition = card.offsetTop + card.offsetHeight - window.innerHeight;
+
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Track perceived first-render time for the Recent feed
   useEffect(() => {
@@ -223,24 +239,12 @@ export function VideoFeed({
     return () => {
       if (autoScrollTimeoutIdRef.current) window.clearTimeout(autoScrollTimeoutIdRef.current);
     }
-  }, [autoScroll, activeVideoId]);
-
-  
-  const scrollToVideoCard = (index: number) => {
-    if (videoCardsListRef.current) {
-      const card = videoCardsListRef.current.children[index] as HTMLDivElement;
-      let scrollPosition: number | undefined;
-      if (autoScrollAlignment === 'center')
-        scrollPosition = (card.offsetTop - (window.innerHeight / 2)) + (card.offsetHeight / 2);
-      else if (autoScrollAlignment === 'bottom')
-        scrollPosition = card.offsetTop + card.offsetHeight - window.innerHeight;
-
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'smooth',
-      });
-    }
-  };
+  }, [
+    autoScroll,
+    autoScrollTimeout,
+    filteredVideos,
+    activeVideoId
+  ]);
 
   // Loading state (initial load only)
   if (isLoading && !data) {

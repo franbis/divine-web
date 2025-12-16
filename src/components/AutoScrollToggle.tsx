@@ -1,6 +1,5 @@
 // ABOUTME: Toggle component for auto-scroll to the active video in a video feed if idling.
 
-import { CheckCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
